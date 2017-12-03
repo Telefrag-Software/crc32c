@@ -3,7 +3,7 @@
 # found in the LICENSE file. See the AUTHORS file for names of contributors.
 
 cmake_minimum_required(VERSION 3.1)
-project(Crc32c VERSION 0.1.0 LANGUAGES C CXX)
+project(crc32c VERSION 0.1.0 LANGUAGES C CXX)
 
 # This project can use C11, but will gracefully decay down to C89.
 set(CMAKE_C_STANDARD 11)
@@ -197,7 +197,7 @@ if(CRC32C_USE_GLOG)
 endif(CRC32C_USE_GLOG)
 
 configure_file(
-  "${PROJECT_SOURCE_DIR}/src/crc32c_config.h.in"
+  "src/crc32c_config.h.in"
   "${PROJECT_BINARY_DIR}/include/crc32c/crc32c_config.h"
 )
 
@@ -209,8 +209,8 @@ add_library(crc32c_arm64 OBJECT "")
 target_sources(crc32c_arm64
   PRIVATE
     "${PROJECT_BINARY_DIR}/include/crc32c/crc32c_config.h"
-    "${PROJECT_SOURCE_DIR}/src/crc32c_arm64.cc"
-    "${PROJECT_SOURCE_DIR}/src/crc32c_arm64.h"
+    "src/crc32c_arm64.cc"
+    "src/crc32c_arm64.h"
 )
 if(HAVE_ARM64_CRC32C)
   if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
@@ -227,8 +227,8 @@ add_library(crc32c_sse42 OBJECT "")
 target_sources(crc32c_sse42
   PRIVATE
     "${PROJECT_BINARY_DIR}/include/crc32c/crc32c_config.h"
-    "${PROJECT_SOURCE_DIR}/src/crc32c_sse42.cc"
-    "${PROJECT_SOURCE_DIR}/src/crc32c_sse42.h"
+    "src/crc32c_sse42.cc"
+    "src/crc32c_sse42.h"
 )
 if(HAVE_SSE42)
   if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
@@ -239,34 +239,28 @@ if(HAVE_SSE42)
 endif(HAVE_SSE42)
 
 add_library(crc32c ""
-  # TODO(pwnall): Move the TARGET_OBJECTS generator expressions to the PRIVATE
-  # section of target_sources when cmake_minimum_required becomes 3.9 or above.
   $<TARGET_OBJECTS:crc32c_arm64>
   $<TARGET_OBJECTS:crc32c_sse42>
 )
 target_sources(crc32c
   PRIVATE
     "${PROJECT_BINARY_DIR}/include/crc32c/crc32c_config.h"
-    "${PROJECT_SOURCE_DIR}/src/crc32c_arm64.h"
-    "${PROJECT_SOURCE_DIR}/src/crc32c_arm64_linux_check.h"
-    "${PROJECT_SOURCE_DIR}/src/crc32c_internal.h"
-    "${PROJECT_SOURCE_DIR}/src/crc32c_portable.cc"
-    "${PROJECT_SOURCE_DIR}/src/crc32c_prefetch.h"
-    "${PROJECT_SOURCE_DIR}/src/crc32c_read_le.h"
-    "${PROJECT_SOURCE_DIR}/src/crc32c_round_up.h"
-    "${PROJECT_SOURCE_DIR}/src/crc32c_sse42.h"
-    "${PROJECT_SOURCE_DIR}/src/crc32c_sse42_check.h"
-    "${PROJECT_SOURCE_DIR}/src/crc32c.cc"
-
-  # Only CMake 3.3+ supports PUBLIC sources in targets exported by "install".
-  $<$<VERSION_GREATER:CMAKE_VERSION,3.2>:PUBLIC>
+    "src/crc32c_arm64.h"
+    "src/crc32c_arm64_linux_check.h"
+    "src/crc32c_internal.h"
+    "src/crc32c_portable.cc"
+    "src/crc32c_prefetch.h"
+    "src/crc32c_read_le.h"
+    "src/crc32c_round_up.h"
+    "src/crc32c_sse42.h"
+    "src/crc32c_sse42_check.h"
+    "src/crc32c.cc"
     "include/crc32c/crc32c.h"
 )
 
 target_include_directories(crc32c
   PUBLIC
     $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
-    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
 
 # Warnings as errors in Visual Studio for this project's targets.
@@ -287,19 +281,17 @@ if(CRC32C_BUILD_TESTS)
   # This project is tested using GoogleTest.
   add_subdirectory("${PROJECT_SOURCE_DIR}/third_party/googletest")
 
-  add_executable(crc32c_tests "")
-  target_sources(crc32c_tests
-    PRIVATE
+  add_executable(crc32c_tests
       "${PROJECT_BINARY_DIR}/include/crc32c/crc32c_config.h"
-      "${PROJECT_SOURCE_DIR}/src/crc32c_arm64_unittest.cc"
-      "${PROJECT_SOURCE_DIR}/src/crc32c_extend_unittests.h"
-      "${PROJECT_SOURCE_DIR}/src/crc32c_portable_unittest.cc"
-      "${PROJECT_SOURCE_DIR}/src/crc32c_prefetch_unittest.cc"
-      "${PROJECT_SOURCE_DIR}/src/crc32c_read_le_unittest.cc"
-      "${PROJECT_SOURCE_DIR}/src/crc32c_round_up_unittest.cc"
-      "${PROJECT_SOURCE_DIR}/src/crc32c_sse42_unittest.cc"
-      "${PROJECT_SOURCE_DIR}/src/crc32c_unittest.cc"
-      "${PROJECT_SOURCE_DIR}/src/crc32c_test_main.cc"
+      "src/crc32c_arm64_unittest.cc"
+      "src/crc32c_extend_unittests.h"
+      "src/crc32c_portable_unittest.cc"
+      "src/crc32c_prefetch_unittest.cc"
+      "src/crc32c_read_le_unittest.cc"
+      "src/crc32c_round_up_unittest.cc"
+      "src/crc32c_sse42_unittest.cc"
+      "src/crc32c_unittest.cc"
+      "src/crc32c_test_main.cc"
   )
   target_link_libraries(crc32c_tests crc32c gtest)
 
@@ -355,33 +347,77 @@ if(CRC32C_BUILD_BENCHMARKS)
 endif(CRC32C_BUILD_BENCHMARKS)
 
 if(CRC32C_INSTALL)
-  include(GNUInstallDirs)
-  install(TARGETS crc32c
-    EXPORT Crc32cTargets
-    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
-    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
-  )
-  install(
-    FILES
-      "${PROJECT_SOURCE_DIR}/include/crc32c/crc32c.h"
-    DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/crc32c"
+  # Installation (https://github.com/forexample/package-example)
+
+  # Layout. This works for all platforms:
+  #   * <prefix>/lib/cmake/<PROJECT-NAME>
+  #   * <prefix>/lib/
+  #   * <prefix>/include/
+  set(config_install_dir "lib/cmake/${PROJECT_NAME}")
+  set(include_install_dir "include")
+
+  set(generated_dir "${CMAKE_CURRENT_BINARY_DIR}/generated")
+
+  # Configuration
+  set(version_config "${generated_dir}/${PROJECT_NAME}ConfigVersion.cmake")
+  set(project_config "${generated_dir}/${PROJECT_NAME}Config.cmake")
+  set(TARGETS_EXPORT_NAME "${PROJECT_NAME}Targets")
+  set(namespace "${PROJECT_NAME}::")
+
+  # Include module with fuction 'write_basic_package_version_file'
+  include(CMakePackageConfigHelpers)
+
+  # Configure '<PROJECT-NAME>ConfigVersion.cmake'
+  # Use:
+  #   * PROJECT_VERSION
+  write_basic_package_version_file(
+      "${version_config}" COMPATIBILITY SameMajorVersion
   )
 
-  include(CMakePackageConfigHelpers)
-  write_basic_package_version_file(
-      "${PROJECT_BINARY_DIR}/Crc32cConfigVersion.cmake"
-      COMPATIBILITY SameMajorVersion
+  # Configure '<PROJECT-NAME>Config.cmake'
+  # Use variables:
+  #   * TARGETS_EXPORT_NAME
+  #   * PROJECT_NAME
+  configure_package_config_file(
+      "crc32cConfig.cmake.in"
+      "${project_config}"
+      INSTALL_DESTINATION "${config_install_dir}"
   )
+
+  # Targets:
+  #   * <prefix>/lib/libcrc32c.a
+  #   * header location after install: <prefix>/include/crc32c/crc32c.h
+  #   * headers can be included by C++ code `#include <crc32c/crc32c.h>`
   install(
-    EXPORT Crc32cTargets
-    NAMESPACE Crc32c::
-    DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/Crc32c"
+      TARGETS crc32c
+      EXPORT "${TARGETS_EXPORT_NAME}"
+      LIBRARY DESTINATION "lib"
+      ARCHIVE DESTINATION "lib"
+      RUNTIME DESTINATION "bin"
+      INCLUDES DESTINATION "${include_install_dir}"
   )
+
+  # Headers:
+  #   * include/crc32c/crc32c.h -> <prefix>/include/crc32c/crc32c.h
   install(
-    FILES
-      "${PROJECT_SOURCE_DIR}/Crc32cConfig.cmake"
-      "${PROJECT_BINARY_DIR}/Crc32cConfigVersion.cmake"
-    DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/Crc32c"
+      DIRECTORY "include/crc32c"
+      DESTINATION "${include_install_dir}"
+      FILES_MATCHING PATTERN "*.h"
+  )
+
+  # Config
+  #   * <prefix>/lib/cmake/Foo/crc32cConfig.cmake
+  #   * <prefix>/lib/cmake/Foo/crc32cConfigVersion.cmake
+  install(
+      FILES "${project_config}" "${version_config}"
+      DESTINATION "${config_install_dir}"
+  )
+
+  # Config
+  #   * <prefix>/lib/cmake/crc32c/crc32cTargets.cmake
+  install(
+      EXPORT "${TARGETS_EXPORT_NAME}"
+      NAMESPACE "${namespace}"
+      DESTINATION "${config_install_dir}"
   )
 endif(CRC32C_INSTALL)
