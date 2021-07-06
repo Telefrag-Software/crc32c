@@ -3,7 +3,7 @@
 # found in the LICENSE file. See the AUTHORS file for names of contributors.
 
 cmake_minimum_required(VERSION 3.1)
-project(Crc32c VERSION 1.1.0 LANGUAGES C CXX)
+project(Crc32c VERSION 1.1.1 LANGUAGES C CXX)
 
 # C standard can be overridden when this is used as a sub-project.
 if(NOT CMAKE_C_STANDARD)
@@ -266,8 +266,6 @@ endif(BUILD_SHARED_LIBS)
 include(GNUInstallDirs)
 
 add_library(crc32c ""
-  # TODO(pwnall): Move the TARGET_OBJECTS generator expressions to the PRIVATE
-  # section of target_sources when cmake_minimum_required becomes 3.9 or above.
   $<TARGET_OBJECTS:crc32c_arm64>
   $<TARGET_OBJECTS:crc32c_sse42>
 )
@@ -284,16 +282,12 @@ target_sources(crc32c
     "src/crc32c_sse42.h"
     "src/crc32c_sse42_check.h"
     "src/crc32c.cc"
-
-  # Only CMake 3.3+ supports PUBLIC sources in targets exported by "install".
-  $<$<VERSION_GREATER:CMAKE_VERSION,3.2>:PUBLIC>
     "include/crc32c/crc32c.h"
 )
 
 target_include_directories(crc32c
   PUBLIC
     $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
-    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
 
 set_target_properties(crc32c
@@ -325,9 +319,7 @@ if(CRC32C_BUILD_TESTS)
         APPEND PROPERTY COMPILE_OPTIONS -Wno-missing-field-initializers)
   endif(CRC32C_HAVE_NO_MISSING_FIELD_INITIALIZERS)
 
-  add_executable(crc32c_tests "")
-  target_sources(crc32c_tests
-    PRIVATE
+  add_executable(crc32c_tests
       "${PROJECT_BINARY_DIR}/include/crc32c/crc32c_config.h"
       "src/crc32c_arm64_unittest.cc"
       "src/crc32c_extend_unittests.h"
@@ -393,37 +385,51 @@ if(CRC32C_BUILD_BENCHMARKS)
 endif(CRC32C_BUILD_BENCHMARKS)
 
 if(CRC32C_INSTALL)
-  install(TARGETS crc32c
-    EXPORT Crc32cTargets
-    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
-    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
-  )
-  install(
-    FILES
-      "include/crc32c/crc32c.h"
-    DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/crc32c"
-  )
+  set(config_install_dir "lib/cmake/${PROJECT_NAME}")
+  set(include_install_dir "include")
+
+  set(generated_dir "${CMAKE_CURRENT_BINARY_DIR}/generated")
+
+  set(version_config "${generated_dir}/${PROJECT_NAME}ConfigVersion.cmake")
+  set(project_config "${generated_dir}/${PROJECT_NAME}Config.cmake")
+  set(TARGETS_EXPORT_NAME "${PROJECT_NAME}Targets")
+  set(namespace "${PROJECT_NAME}::")
 
   include(CMakePackageConfigHelpers)
-  configure_package_config_file(
-    "${PROJECT_NAME}Config.cmake.in"
-    "${PROJECT_BINARY_DIR}/${PROJECT_NAME}Config.cmake"
-    INSTALL_DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}"
-  )
+
   write_basic_package_version_file(
-    "${PROJECT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake"
-    COMPATIBILITY SameMajorVersion
+      "${version_config}" COMPATIBILITY SameMajorVersion
   )
-  install(
-    EXPORT Crc32cTargets
-    NAMESPACE Crc32c::
-    DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}"
+
+  configure_package_config_file(
+      "Crc32cConfig.cmake.in"
+      "${project_config}"
+      INSTALL_DESTINATION "${config_install_dir}"
   )
+
   install(
-    FILES
-      "${PROJECT_BINARY_DIR}/${PROJECT_NAME}Config.cmake"
-      "${PROJECT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake"
-    DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}"
+      TARGETS crc32c
+      EXPORT "${TARGETS_EXPORT_NAME}"
+      LIBRARY DESTINATION "lib"
+      ARCHIVE DESTINATION "lib"
+      RUNTIME DESTINATION "bin"
+      INCLUDES DESTINATION "${include_install_dir}"
+  )
+
+  install(
+      DIRECTORY "include/crc32c"
+      DESTINATION "${include_install_dir}"
+      FILES_MATCHING PATTERN "*.h"
+  )
+
+  install(
+      FILES "${project_config}" "${version_config}"
+      DESTINATION "${config_install_dir}"
+  )
+
+  install(
+      EXPORT "${TARGETS_EXPORT_NAME}"
+      NAMESPACE "${namespace}"
+      DESTINATION "${config_install_dir}"
   )
 endif(CRC32C_INSTALL)
